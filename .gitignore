@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.sqlite
+*.log
+.env
+.env.local
+.DS_Store
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

@@ -1,0 +1,15 @@
+{
+  "name": "canteen-system",
+  "version": "1.0.0",
+  "description": "食堂订餐系统",
+  "scripts": {
+    "dev": "concurrently \"cd backend && npm start\" \"cd frontend && npm run dev\"",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "sqlite3": "^6.0.1"
+  }
+}
