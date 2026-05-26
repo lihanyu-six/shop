@@ -1,36 +1,60 @@
 <template>
   <div class="menu-container">
-    <van-nav-bar title="订餐" left-arrow @click-left="onClickLeft">
-      <template #right>
-        <van-icon name="ellipsis" size="20" style="margin-right: 15px" />
-        <van-icon name="user-o" size="20" />
-      </template>
+    <van-nav-bar title="点餐" left-arrow @click-left="onClickLeft">
     </van-nav-bar>
 
+    <!-- 本周标题 -->
+    <div class="week-header">
+      <span class="week-title">本周</span>
+      <span class="week-range">{{ weekRange }}</span>
+    </div>
+
+    <!-- 日期选择器 -->
     <div class="date-selector">
       <div class="date-item" v-for="(date, index) in weekDates" :key="index"
-        :class="{ active: selectedDateIndex === index }"
+        :class="{ active: selectedDateIndex === index, today: date.isToday }"
         @click="selectDate(index)">
         <div class="weekday">{{ date.weekday }}</div>
-        <div class="day">{{ date.day }}</div>
+        <div class="day">{{ date.isToday ? '今' : date.day }}</div>
       </div>
     </div>
 
+    <!-- 餐段标签 -->
     <div class="meal-tabs">
       <div class="tab-item" :class="{ active: selectedMeal === 'breakfast' }"
         @click="switchMeal('breakfast')">
-        <span>早餐</span>
-        <span class="status" :class="{ expired: isBreakfastExpired }">
-          {{ isBreakfastExpired ? '已过期' : '可预定' }}
+        <div class="tab-main">
+          <span class="meal-name">早餐</span>
+          <span class="meal-line" :class="{ active: selectedMeal === 'breakfast' }"></span>
+        </div>
+        <span class="meal-status" :class="getBreakfastStatus().class">
+          {{ getBreakfastStatus().text }}
         </span>
       </div>
       <div class="tab-item" :class="{ active: selectedMeal === 'lunch' }"
         @click="switchMeal('lunch')">
-        <span>午餐</span>
+        <div class="tab-main">
+          <span class="meal-name">午餐</span>
+          <span class="meal-line" :class="{ active: selectedMeal === 'lunch' }"></span>
+        </div>
+        <span class="meal-status" :class="getLunchStatus().class">
+          {{ getLunchStatus().text }}
+        </span>
+      </div>
+      <div class="tab-item" :class="{ active: selectedMeal === 'dinner' }"
+        @click="switchMeal('dinner')">
+        <div class="tab-main">
+          <span class="meal-name">晚餐</span>
+          <span class="meal-line" :class="{ active: selectedMeal === 'dinner' }"></span>
+        </div>
+        <span class="meal-status" :class="getDinnerStatus().class">
+          {{ getDinnerStatus().text }}
+        </span>
       </div>
     </div>
 
-    <div class="time-tip" v-if="!isMealExpired">
+    <!-- 可预定时间提示 -->
+    <div class="time-tip" v-if="!isMealUnavailable">
       <van-icon name="volume-o" color="#ff976a" />
       <span>{{ mealTimeTip }}</span>
     </div>
@@ -72,7 +96,8 @@
       </div>
     </div>
 
-    <div class="bottom-bar" :class="{ disabled: isMealExpired }">
+    <!-- 底部购物车 -->
+    <div class="bottom-bar" :class="{ disabled: isMealUnavailable }">
       <div class="cart-icon-wrapper" @click="showCartPopup = true">
         <div class="cart-icon">
           <van-icon name="shopping-cart-o" size="24" color="#fff" />
@@ -83,12 +108,13 @@
         <div class="price">¥{{ cartStore.totalPrice.toFixed(2) }}</div>
         <div class="count-tip" v-if="cartStore.totalCount > 0">已选择{{ cartStore.totalCount }}件商品</div>
       </div>
-      <button class="btn-checkout" :disabled="isMealExpired || cartStore.totalCount === 0"
+      <button class="btn-checkout" :disabled="isMealUnavailable || cartStore.totalCount === 0"
         @click="goToCheckout">
-        {{ isMealExpired ? '该餐品未到预定时间，请重新选择！' : '去结算' }}
+        {{ isMealUnavailable ? getUnavailableText() : '提交订单' }}
       </button>
     </div>
 
+    <!-- 购物车弹窗 -->
     <van-popup v-model:show="showCartPopup" position="bottom" round :style="{ height: '60%' }">
       <div class="cart-popup">
         <div class="popup-header">
@@ -116,10 +142,14 @@
       </div>
     </van-popup>
 
+    <!-- 菜品详情弹窗 -->
     <van-popup v-model:show="showDishPopup" position="bottom" round :style="{ height: '70%' }">
       <div class="dish-detail-popup" v-if="currentDish">
-        <van-image :src="currentDish.image" width="100%" height="200" fit="cover" />
-        <div class="detail-content">
+        <div class="detail-image-wrapper">
+          <van-image :src="currentDish.image" width="100%" height="220px" fit="cover" :radius="[0,0,16,16]" />
+        </div>
+        <div class="detail-content-scroll">
+          <div class="detail-content">
           <h3>{{ currentDish.name }}</h3>
           <p class="detail-price">¥{{ currentDish.price.toFixed(2) }}</p>
           <p class="detail-desc">{{ currentDish.description }}</p>
@@ -154,11 +184,11 @@
               <button class="btn-plus" @click="detailQuantity++">+</button>
             </div>
           </div>
-
-          <div class="detail-bottom">
-            <span class="total-price">¥{{ (currentDish.price * detailQuantity).toFixed(2) }}</span>
-            <button class="btn-add-cart" @click="addToCartFromDetail">加入购物车</button>
           </div>
+        </div>
+        <div class="detail-bottom-fixed">
+          <span class="total-price">¥{{ (currentDish.price * detailQuantity).toFixed(2) }}</span>
+          <button class="btn-add-cart" @click="addToCartFromDetail">加入购物车</button>
         </div>
       </div>
     </van-popup>
@@ -178,17 +208,11 @@ const cartStore = useCartStore()
 const refreshing = ref(false)
 const dishes = ref([])
 const categories = ref([
-  { id: 1, name: '精选套餐' },
-  { id: 2, name: '热销产品' },
-  { id: 3, name: '新品上线' },
-  { id: 4, name: '家常炒菜' },
-  { id: 5, name: '甜品点心' },
-  { id: 6, name: '蔬菜汤汁' },
-  { id: 7, name: '酒水饮品' }
+  { id: 1, name: '主食' },
+  { id: 2, name: '辅食' }
 ])
 const selectedCategory = ref(0)
-const selectedMeal = ref('lunch')
-const selectedDateIndex = ref(2)
+const selectedDateIndex = ref(getTodayIndex())
 const showCartPopup = ref(false)
 const showDishPopup = ref(false)
 const currentDish = ref(null)
@@ -196,9 +220,29 @@ const selectedTaste = ref('')
 const selectedSpec = ref('')
 const detailQuantity = ref(1)
 
+// 获取今天在日期列表中的索引
+function getTodayIndex() {
+  const today = new Date()
+  const dayOfWeek = today.getDay()
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+  return -mondayOffset
+}
+
+// 根据当前时间自动判断默认餐段
+const getDefaultMealType = () => {
+  const hours = new Date().getHours()
+  if (hours < 10) return 'breakfast'
+  if (hours < 14) return 'lunch'
+  if (hours < 20) return 'dinner'
+  return 'dinner'
+}
+
+const selectedMeal = ref(getDefaultMealType())
+
+// 生成本周日期
 const weekDates = computed(() => {
   const dates = []
-  const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+  const weekdays = ['一', '二', '三', '四', '五', '六', '日']
   const today = new Date()
   const dayOfWeek = today.getDay()
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
@@ -206,39 +250,111 @@ const weekDates = computed(() => {
   for (let i = 0; i < 7; i++) {
     const date = new Date(today)
     date.setDate(today.getDate() + mondayOffset + i)
+    const dateStr = date.toISOString().split('T')[0]
+    const todayStr = new Date().toISOString().split('T')[0]
     dates.push({
       weekday: weekdays[i],
       day: date.getDate(),
-      date: date.toISOString().split('T')[0]
+      isToday: dateStr === todayStr,
+      date: dateStr
     })
   }
   return dates
 })
 
-const selectedDate = computed(() => weekDates.value[selectedDateIndex.value]?.date)
-
-const isBreakfastExpired = computed(() => {
-  const now = new Date()
-  const hours = now.getHours()
-  return hours >= 10
+// 计算本周日期范围
+const weekRange = computed(() => {
+  const first = weekDates.value[0]?.date || ''
+  const last = weekDates.value[6]?.date || ''
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr)
+    return `${d.getMonth() + 1}.${d.getDate()}`
+  }
+  return `${formatDate(first)}-${formatDate(last)}`
 })
 
-const isMealExpired = computed(() => {
-  if (selectedMeal.value === 'breakfast') {
-    return isBreakfastExpired.value
+const selectedDate = computed(() => weekDates.value[selectedDateIndex.value]?.date)
+
+// 判断选定的日期是否是今天
+const isToday = computed(() => {
+  const todayStr = new Date().toISOString().split('T')[0]
+  return selectedDate.value === todayStr
+})
+
+// 获取餐段状态 - 返回 { class, text }
+function getMealStatus(startTime, endTime) {
+  // 未来日期，始终可预定
+  if (!isToday.value) {
+    return { class: 'upcoming', text: '可预定' }
   }
-  return false
+
+  const now = new Date()
+  const hours = now.getHours()
+  const minutes = now.getMinutes()
+  const currentMinutes = hours * 60 + minutes
+
+  const [startH, startM] = startTime.split(':').map(Number)
+  const [endH, endM] = endTime.split(':').map(Number)
+  const startMinutes = startH * 60 + startM
+  const endMinutes = endH * 60 + endM
+
+  if (currentMinutes >= endMinutes) {
+    return { class: 'expired', text: '已过期' }
+  } else if (currentMinutes >= startMinutes) {
+    return { class: 'booking', text: '预定中' }
+  } else {
+    return { class: 'upcoming', text: '未开始' }
+  }
+}
+
+function getBreakfastStatus() {
+  return getMealStatus('6:00', '10:00')
+}
+
+function getLunchStatus() {
+  return getMealStatus('10:00', '14:00')
+}
+
+function getDinnerStatus() {
+  return getMealStatus('14:00', '20:00')
+}
+
+// 当前选中的餐段是否不可用（已过期）
+const isMealExpired = computed(() => {
+  const status = selectedMeal.value === 'breakfast' ? getBreakfastStatus() :
+                 selectedMeal.value === 'lunch' ? getLunchStatus() :
+                 getDinnerStatus()
+  return status.text === '已过期'
+})
+
+// 当前选中的餐段是否未开始
+const isMealNotStarted = computed(() => {
+  const status = selectedMeal.value === 'breakfast' ? getBreakfastStatus() :
+                 selectedMeal.value === 'lunch' ? getLunchStatus() :
+                 getDinnerStatus()
+  return status.text === '未开始'
+})
+
+const isMealUnavailable = computed(() => {
+  return isMealExpired.value || isMealNotStarted.value
 })
 
 const mealTimeTip = computed(() => {
   if (selectedMeal.value === 'breakfast') {
-    return '早餐可预定的时间为: 6:00-8:00'
+    return '早餐可预定时间为 6:00-10:00'
   }
-  return '午餐可预定的时间为: 11:00-13:00'
+  if (selectedMeal.value === 'lunch') {
+    return '午餐可预定时间为 10:00-14:00'
+  }
+  return '晚餐可预定时间为 14:00-20:00'
 })
 
 const currentDishes = computed(() => {
-  return dishes.value
+  if (selectedCategory.value === 0) {
+    return dishes.value
+  }
+  const categoryName = categories.value[selectedCategory.value]?.name
+  return dishes.value.filter(dish => dish.category === categoryName)
 })
 
 watch(selectedDate, () => {
@@ -257,6 +373,7 @@ async function loadDishes() {
     })
     dishes.value = (res.dishes || []).map(dish => ({
       ...dish,
+      category: dish.category || categorizeDish(dish),
       tastes: dish.tastes || ['多油', '清爽'],
       specs: dish.specs || ['少盐', '清爽', '清淡']
     }))
@@ -265,13 +382,30 @@ async function loadDishes() {
   }
 }
 
+function categorizeDish(dish) {
+  const name = (dish.name || '').toLowerCase()
+  const desc = (dish.description || '').toLowerCase()
+
+  if (name.includes('面') || name.includes('粉') || name.includes('饭') || name.includes('便当') || name.includes('套餐')) return '主食'
+  if (name.includes('汤') || name.includes('汁') || name.includes('粥') || name.includes('菜')) return '辅食'
+
+  return '主食'
+}
+
 function selectDate(index) {
   selectedDateIndex.value = index
 }
 
 function switchMeal(meal) {
-  if (meal === 'breakfast' && isBreakfastExpired.value) {
-    showToast('早餐预定时间已过')
+  const status = meal === 'breakfast' ? getBreakfastStatus() :
+                 meal === 'lunch' ? getLunchStatus() : getDinnerStatus()
+
+  if (status.text === '已过期') {
+    showToast('该餐段已过期')
+    return
+  }
+  if (status.text === '未开始') {
+    showToast('该餐段还未开始')
     return
   }
   selectedMeal.value = meal
@@ -329,9 +463,15 @@ function clearCart() {
   showToast('购物车已清空')
 }
 
+function getUnavailableText() {
+  if (isMealExpired.value) return '该餐段已过期'
+  if (isMealNotStarted.value) return '未到预定时间'
+  return '提交订单'
+}
+
 function goToCheckout() {
-  if (isMealExpired.value) {
-    showToast('该餐品未到预定时间')
+  if (isMealUnavailable.value) {
+    showToast(getUnavailableText())
     return
   }
   if (cartStore.totalCount === 0) {
@@ -366,13 +506,46 @@ onMounted(() => {
   background: #f5f5f5;
   min-height: 100vh;
   padding-bottom: 80px;
+  display: flex;
+  flex-direction: column;
+
+  :deep(.van-nav-bar) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+  }
+
+  .week-header {
+    margin-top: 46px;
+  }
+}
+
+.week-header {
+  background: #fff;
+  padding: 12px 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .week-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+  }
+
+  .week-range {
+    font-size: 14px;
+    color: #666;
+  }
 }
 
 .date-selector {
   background: #fff;
   display: flex;
   justify-content: space-around;
-  padding: 15px 10px;
+  padding: 10px 15px;
   border-bottom: 1px solid #eee;
 
   .date-item {
@@ -380,7 +553,7 @@ onMounted(() => {
     flex-direction: column;
     align-items: center;
     padding: 8px 12px;
-    border-radius: 50%;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s;
 
@@ -392,9 +565,16 @@ onMounted(() => {
       }
     }
 
+    &.today:not(.active) {
+      .day {
+        color: #1989fa;
+        font-weight: bold;
+      }
+    }
+
     .weekday {
       font-size: 12px;
-      color: #666;
+      color: #999;
       margin-bottom: 4px;
     }
 
@@ -410,45 +590,62 @@ onMounted(() => {
   background: #fff;
   display: flex;
   padding: 15px;
-  gap: 30px;
+  gap: 20px;
   border-bottom: 1px solid #eee;
 
   .tab-item {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 16px;
-    color: #666;
     cursor: pointer;
-    position: relative;
 
-    &.active {
-      color: #333;
-      font-weight: bold;
+    .tab-main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
 
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -15px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 30px;
-        height: 3px;
+      .meal-name {
+        font-size: 16px;
+        color: #666;
+        transition: color 0.3s;
+      }
+
+      .meal-line {
+        width: 0;
+        height: 2px;
         background: #1989fa;
-        border-radius: 2px;
+        margin-top: 4px;
+        transition: width 0.3s;
+
+        &.active {
+          width: 24px;
+        }
       }
     }
 
-    .status {
-      font-size: 11px;
+    &.active .meal-name {
+      color: #333;
+      font-weight: bold;
+    }
+
+    .meal-status {
+      font-size: 10px;
       padding: 2px 6px;
-      border-radius: 4px;
-      background: #e8f4fd;
-      color: #1989fa;
+      border-radius: 3px;
 
       &.expired {
         background: #f5f5f5;
         color: #999;
+      }
+
+      &.booking {
+        background: #e8f4fd;
+        color: #1989fa;
+      }
+
+      &.upcoming {
+        background: #fff3e0;
+        color: #ff9800;
       }
     }
   }
@@ -460,36 +657,35 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12px;
   color: #ff976a;
-  margin-bottom: 1px;
 }
 
 .main-content {
   display: flex;
-  height: calc(100vh - 280px);
+  height: calc(100vh - 290px);
   overflow: hidden;
 }
 
 .category-sidebar {
-  width: 85px;
+  width: 70px;
   background: #f5f5f5;
   overflow-y: auto;
   flex-shrink: 0;
 
   .category-item {
-    padding: 18px 10px;
+    padding: 15px 8px;
     text-align: center;
     font-size: 13px;
     color: #666;
     cursor: pointer;
-    border-left: 3px solid transparent;
+    border-left: 2px solid transparent;
 
     &.active {
       background: #fff;
-      color: #1989fa;
+      color: #333;
       font-weight: bold;
-      border-left-color: #1989fa;
+      border-left-color: #333;
     }
   }
 }
@@ -595,7 +791,7 @@ onMounted(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #fff;
   padding: 12px 15px;
   display: flex;
   align-items: center;
@@ -604,10 +800,8 @@ onMounted(() => {
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
 
   &.disabled {
-    background: linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%);
-
     .btn-checkout {
-      background: rgba(255, 255, 255, 0.3);
+      background: #ccc;
     }
   }
 
@@ -618,13 +812,14 @@ onMounted(() => {
     .cart-icon {
       width: 50px;
       height: 50px;
-      background: rgba(255, 255, 255, 0.2);
+      background: #333;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
-      border: 3px solid #764ba2;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 
       :deep(.van-badge) {
         position: absolute;
@@ -636,7 +831,7 @@ onMounted(() => {
 
   .bar-info {
     flex: 1;
-    color: #fff;
+    color: #333;
 
     .price {
       font-size: 20px;
@@ -645,16 +840,16 @@ onMounted(() => {
 
     .count-tip {
       font-size: 12px;
-      opacity: 0.9;
+      color: #999;
     }
   }
 
   .btn-checkout {
     padding: 10px 25px;
-    background: #fff;
-    color: #667eea;
+    background: #333;
+    color: #fff;
     border: none;
-    border-radius: 25px;
+    border-radius: 4px;
     font-size: 15px;
     font-weight: bold;
     cursor: pointer;
@@ -761,10 +956,10 @@ onMounted(() => {
 
     .btn-checkout {
       padding: 10px 30px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #333;
       color: #fff;
       border: none;
-      border-radius: 25px;
+      border-radius: 4px;
       font-size: 15px;
       font-weight: bold;
       cursor: pointer;
@@ -773,6 +968,30 @@ onMounted(() => {
 }
 
 .dish-detail-popup {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .detail-image-wrapper {
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    :deep(.van-image) {
+      display: block;
+      width: 100% !important;
+      height: 220px !important;
+    }
+  }
+
+  .detail-content-scroll {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .detail-content {
     padding: 20px;
 
@@ -828,7 +1047,7 @@ onMounted(() => {
     }
 
     .quantity-section {
-      margin-bottom: 30px;
+      margin-bottom: 10px;
 
       h4 {
         font-size: 15px;
@@ -865,30 +1084,32 @@ onMounted(() => {
         }
       }
     }
+  }
 
-    .detail-bottom {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: 20px;
-      border-top: 1px solid #eee;
+  .detail-bottom-fixed {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: #fff;
+    border-top: 1px solid #eee;
 
-      .total-price {
-        font-size: 22px;
-        font-weight: bold;
-        color: #ff6b35;
-      }
+    .total-price {
+      font-size: 22px;
+      font-weight: bold;
+      color: #ff6b35;
+    }
 
-      .btn-add-cart {
-        padding: 12px 30px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #fff;
-        border: none;
-        border-radius: 25px;
-        font-size: 15px;
-        font-weight: bold;
-        cursor: pointer;
-      }
+    .btn-add-cart {
+      padding: 12px 30px;
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
     }
   }
 }

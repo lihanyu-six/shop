@@ -51,16 +51,36 @@
       </div>
       
       <div class="daily-menu-section">
-        <div class="section-header" @click="$router.push('/menu')">
+        <div class="section-header">
           <h3>每日菜谱</h3>
-          <van-icon name="arrow" />
         </div>
-        <div class="menu-card">
-          <div class="menu-info">
-            <p>查看每日菜品</p>
+        <div class="menu-cards-grid">
+          <div class="menu-card-item warm" @click="$router.push('/menu/warm')">
+            <div class="card-preview">
+              <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=150&h=100&fit=crop" alt="暖色菜谱" />
+            </div>
+            <div class="card-info">
+              <span class="card-title">经典菜谱</span>
+              <span class="card-desc">传统美味</span>
+            </div>
           </div>
-          <div class="menu-preview">
-            <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=120&fit=crop" alt="菜品" />
+          <div class="menu-card-item blue" @click="$router.push('/menu/blue')">
+            <div class="card-preview">
+              <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=150&h=100&fit=crop" alt="蓝色菜谱" />
+            </div>
+            <div class="card-info">
+              <span class="card-title">健康轻食</span>
+              <span class="card-desc">营养均衡</span>
+            </div>
+          </div>
+          <div class="menu-card-item green" @click="$router.push('/menu/green')">
+            <div class="card-preview">
+              <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=150&h=100&fit=crop" alt="绿色菜谱" />
+            </div>
+            <div class="card-info">
+              <span class="card-title">时令鲜蔬</span>
+              <span class="card-desc">新鲜有机</span>
+            </div>
           </div>
         </div>
       </div>
@@ -271,7 +291,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
-  
+
   h3 {
     font-size: 17px;
     font-weight: 600;
@@ -280,33 +300,92 @@ onMounted(() => {
   }
 }
 
-.menu-card {
+.menu-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.menu-card-item {
   background: #fff;
   border-radius: 16px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.menu-info {
-  p {
-    font-size: 14px;
-    color: #969799;
-    margin: 0;
-  }
-}
-
-.menu-preview {
-  width: 100px;
-  height: 60px;
-  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
   overflow: hidden;
-  
-  img {
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  .card-preview {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: 80px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 10px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .card-desc {
+      font-size: 12px;
+      color: #999;
+    }
+  }
+
+  &.warm {
+    background: linear-gradient(135deg, #fef5e7 0%, #fdebd0 100%);
+    border: 2px solid #f39c12;
+
+    .card-title {
+      color: #d68910;
+    }
+
+    .card-desc {
+      color: #b9770e;
+    }
+  }
+
+  &.blue {
+    background: linear-gradient(135deg, #ebf5fb 0%, #d6eaf8 100%);
+    border: 2px solid #3498db;
+
+    .card-title {
+      color: #2874a6;
+    }
+
+    .card-desc {
+      color: #5499c7;
+    }
+  }
+
+  &.green {
+    background: linear-gradient(135deg, #eafaf1 0%, #d5f5e3 100%);
+    border: 2px solid #27ae60;
+
+    .card-title {
+      color: #1e8449;
+    }
+
+    .card-desc {
+      color: #52be80;
+    }
   }
 }
 

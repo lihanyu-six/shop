@@ -25,6 +25,24 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/menu/warm',
+    name: 'MenuWarm',
+    component: () => import('@/views/MenuWarm.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/menu/blue',
+    name: 'MenuBlue',
+    component: () => import('@/views/MenuBlue.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/menu/green',
+    name: 'MenuGreen',
+    component: () => import('@/views/MenuGreen.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/cart',
     name: 'Cart',
     component: () => import('@/views/Cart.vue'),
@@ -82,6 +100,18 @@ const routes = [
     path: '/notice/:id',
     name: 'NoticeDetail',
     component: () => import('@/views/NoticeDetail.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/consumption',
+    name: 'Consumption',
+    component: () => import('@/views/Consumption.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/notifications',
+    name: 'Notifications',
+    component: () => import('@/views/Notifications.vue'),
     meta: { requiresAuth: true }
   }
 ]

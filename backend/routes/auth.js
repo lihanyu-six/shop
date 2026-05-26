@@ -1,6 +1,5 @@
 const Router = require('koa-router');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const { db } = require('../database');
 const { JWT_SECRET } = require('../middleware/auth');
 
@@ -136,6 +135,41 @@ router.put('/profile', async (ctx) => {
     ctx.status = 401;
     ctx.body = { error: '无效的令牌' };
   }
+});
+
+router.post('/admin/login', async (ctx) => {
+  const { username, password } = ctx.request.body;
+
+  if (!username || !password) {
+    ctx.status = 400;
+    ctx.body = { code: 400, message: '请输入用户名和密码', data: null };
+    return;
+  }
+
+  if (username === 'admin' && password === '123456') {
+    const token = jwt.sign(
+      { userId: 0, username: 'admin', role: 'admin' },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    ctx.body = {
+      code: 200,
+      message: 'success',
+      data: {
+        token,
+        user: {
+          id: 0,
+          username: 'admin',
+          name: '系统管理员'
+        }
+      }
+    };
+    return;
+  }
+
+  ctx.status = 401;
+  ctx.body = { code: 401, message: '用户名或密码错误', data: null };
 });
 
 module.exports = router;

@@ -1,21 +1,20 @@
 <template>
   <div class="notices-container page-container">
-    <van-nav-bar title="通知公告" left-arrow @click-left="onClickLeft" />
+    <van-nav-bar title="食堂动态" left-arrow @click-left="onClickLeft" />
     
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
       <div class="notice-list" v-if="notices.length > 0">
         <div class="notice-card" v-for="item in notices" :key="item.id" @click="goToNotice(item.id)">
-          <div class="notice-header">
-            <h4>{{ item.title }}</h4>
-            <van-tag size="small" :type="item.type === '公告' ? 'primary' : 'default'">
-              {{ item.type || '通知' }}
-            </van-tag>
+          <div class="notice-image">
+            <img :src="item.image || 'https://via.placeholder.com/100x80'" alt="" />
           </div>
-          <p class="notice-preview">{{ item.content.substring(0, 50) }}...</p>
-          <div class="notice-time">{{ formatDate(item.created_at) }}</div>
+          <div class="notice-info">
+            <h4 class="notice-title">{{ item.title }}</h4>
+            <p class="notice-date">{{ formatDate(item.created_at) }}</p>
+          </div>
         </div>
       </div>
-      <van-empty v-else description="暂无通知公告" />
+      <van-empty v-else description="暂无动态信息" />
     </van-pull-refresh>
   </div>
 </template>
@@ -50,7 +49,7 @@ function goToNotice(id) {
 
 function formatDate(dateStr) {
   const date = new Date(dateStr)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
 }
 
 function onClickLeft() {
@@ -64,43 +63,61 @@ onMounted(() => {
 
 <style scoped lang="less">
 .notice-list {
-  padding: 10px;
+  padding: 15px;
 }
 
 .notice-card {
   background: #fff;
   border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 10px;
-}
-
-.notice-header {
+  padding: 12px;
+  margin-bottom: 12px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  gap: 12px;
+  cursor: pointer;
   
-  h4 {
-    font-size: 16px;
-    margin: 0;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  &:active {
+    opacity: 0.8;
   }
 }
 
-.notice-preview {
-  font-size: 14px;
-  color: #969799;
-  margin-bottom: 8px;
+.notice-image {
+  flex-shrink: 0;
+  width: 100px;
+  height: 80px;
+  border-radius: 8px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  background: #f5f5f5;
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
-.notice-time {
-  font-size: 12px;
+.notice-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.notice-title {
+  font-size: 15px;
+  color: #323233;
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notice-date {
+  font-size: 13px;
   color: #969799;
+  margin: 0;
 }
 </style>

@@ -1,17 +1,17 @@
 <template>
   <div class="notice-detail-container page-container">
-    <van-nav-bar title="公告详情" left-arrow @click-left="onClickLeft" />
+    <van-nav-bar title="动态详情" left-arrow @click-left="onClickLeft" />
     
     <div class="notice-content" v-if="notice">
       <div class="notice-header">
         <h2>{{ notice.title }}</h2>
-        <div class="notice-meta">
-          <van-tag :type="notice.type === '公告' ? 'primary' : 'default'">
-            {{ notice.type || '通知' }}
-          </van-tag>
-          <span class="notice-time">{{ formatDate(notice.created_at) }}</span>
-        </div>
+        <p class="notice-time">{{ formatDate(notice.created_at) }}</p>
       </div>
+      
+      <div class="notice-image-wrapper">
+        <img :src="notice.image || 'https://via.placeholder.com/375x200'" alt="" />
+      </div>
+      
       <div class="notice-body">
         <p>{{ notice.content }}</p>
       </div>
@@ -56,42 +56,49 @@ onMounted(() => {
 
 <style scoped lang="less">
 .notice-content {
-  padding: 15px;
+  background: #fff;
 }
 
 .notice-header {
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px 12px 0 0;
-  border-bottom: 1px solid #ebedf0;
+  padding: 20px 15px 12px;
   
   h2 {
-    font-size: 20px;
-    margin-bottom: 15px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #323233;
+    margin: 0 0 10px;
+    line-height: 1.4;
   }
-}
-
-.notice-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .notice-time {
   font-size: 13px;
   color: #969799;
+  margin: 0;
+}
+
+.notice-image-wrapper {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
 .notice-body {
-  background: #fff;
-  padding: 20px;
-  border-radius: 0 0 12px 12px;
+  padding: 20px 15px;
   
   p {
     font-size: 15px;
     line-height: 1.8;
     color: #323233;
     white-space: pre-wrap;
+    word-break: break-all;
+    margin: 0;
   }
 }
 </style>

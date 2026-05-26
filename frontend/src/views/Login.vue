@@ -195,7 +195,7 @@ function handleSliderEnd() {
 <style scoped lang="less">
 .login-container {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f0f7ff 0%, #e6f0ff 50%, #f5f5f5 100%);
+  background: linear-gradient(180deg, #d7e8ff 0%, #f5f5f5 30%, #f5f5f5 70%, #d7e8ff 100%);
   padding: 20px;
   display: flex;
   flex-direction: column;

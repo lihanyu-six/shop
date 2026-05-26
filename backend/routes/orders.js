@@ -106,8 +106,8 @@ router.get('/', async (ctx) => {
 
       const orderIds = orders.map(o => o.id);
       const placeholders = orderIds.map(() => '?').join(',');
-      
-      db.all(`SELECT * FROM order_items WHERE order_id IN (${placeholders})`, orderIds, (err, items) => {
+
+      db.all(`SELECT oi.*, d.image FROM order_items oi LEFT JOIN dishes d ON oi.dish_id = d.id WHERE oi.order_id IN (${placeholders})`, orderIds, (err, items) => {
         if (err) {
           ctx.status = 500;
           ctx.body = { error: '查询失败' };
@@ -152,7 +152,7 @@ router.get('/:id', async (ctx) => {
         return;
       }
       
-      db.all("SELECT * FROM order_items WHERE order_id = ?", [id], (err, items) => {
+      db.all(`SELECT oi.*, d.image FROM order_items oi LEFT JOIN dishes d ON oi.dish_id = d.id WHERE oi.order_id = ?`, [id], (err, items) => {
         if (err) {
           ctx.status = 500;
           ctx.body = { error: '查询失败' };

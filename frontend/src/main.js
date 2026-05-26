@@ -2,7 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import { Button, Form, Field, CellGroup, Tabbar, TabbarItem, NavBar, Card, Stepper, Tag, Popup, Dialog, Toast, Loading, PullRefresh, List, Empty, Tabs, Tab, RadioGroup, Radio, Checkbox, CheckboxGroup, Image as VanImage, Badge, Icon, ActionSheet, Picker, Cell } from 'vant'
+import { Button, Form, Field, CellGroup, Tabbar, TabbarItem, NavBar, Card, Stepper, Tag, Popup, Dialog, Toast, Loading, PullRefresh, List, Empty, Tabs, Tab, RadioGroup, Radio, Checkbox, CheckboxGroup, Image as VanImage, Badge, Icon, ActionSheet, Picker, Cell, Switch, Uploader } from 'vant'
 import 'vant/lib/index.css'
 import './style/global.less'
 
@@ -41,5 +41,7 @@ app.use(Icon)
 app.use(ActionSheet)
 app.use(Picker)
 app.use(Cell)
+app.use(Switch)
+app.use(Uploader)
 
 app.mount('#app')

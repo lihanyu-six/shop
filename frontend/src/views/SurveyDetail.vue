@@ -43,6 +43,11 @@
           </div>
         </div>
         
+        <div class="anonymous-section" @click="toggleAnonymous">
+          <span>是否匿名</span>
+          <van-switch v-model="isAnonymous" size="22" />
+        </div>
+        
         <div class="submit-section">
           <van-button type="primary" round block native-type="submit" :loading="submitting">提交问卷</van-button>
         </div>
@@ -74,6 +79,7 @@ const router = useRouter()
 const survey = ref(null)
 const myResponse = ref(null)
 const submitting = ref(false)
+const isAnonymous = ref(false)
 const answers = reactive({})
 
 async function loadSurvey() {
@@ -99,10 +105,18 @@ async function loadSurvey() {
   }
 }
 
+function toggleAnonymous() {
+  isAnonymous.value = !isAnonymous.value
+}
+
 async function submitSurvey() {
   submitting.value = true
   try {
-    await submitSurveyResponse(route.params.id, answers)
+    const submitData = {
+      ...answers,
+      isAnonymous: isAnonymous.value
+    }
+    await submitSurveyResponse(route.params.id, submitData)
     showToast('提交成功')
     myResponse.value = true
   } finally {
@@ -180,6 +194,23 @@ onMounted(() => {
 
 .text-group {
   padding-left: 10px;
+}
+
+.anonymous-section {
+  background: #fff;
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+  color: #323233;
+  cursor: pointer;
+  
+  &:active {
+    opacity: 0.7;
+  }
 }
 
 .submit-section {
