@@ -54,7 +54,7 @@ router.get('/', async (ctx) => {
 });
 
 router.post('/', async (ctx) => {
-  const { title, content, type } = ctx.request.body;
+  const { title, content, type, image } = ctx.request.body;
 
   if (!title || !content || !type) {
     ctx.status = 400;
@@ -64,8 +64,8 @@ router.post('/', async (ctx) => {
 
   return new Promise((resolve) => {
     db.run(
-      `INSERT INTO notices (title, content, type, status) VALUES (?, ?, ?, 1)`,
-      [title, content, type],
+      `INSERT INTO notices (title, content, type, image, status) VALUES (?, ?, ?, ?, 1)`,
+      [title, content, type, image || ''],
       function(err) {
         if (err) {
           ctx.status = 500;
@@ -87,7 +87,7 @@ router.post('/', async (ctx) => {
 
 router.put('/:id', async (ctx) => {
   const { id } = ctx.params;
-  const { title, content, type } = ctx.request.body;
+  const { title, content, type, image } = ctx.request.body;
 
   if (!title || !content || !type) {
     ctx.status = 400;
@@ -97,8 +97,8 @@ router.put('/:id', async (ctx) => {
 
   return new Promise((resolve) => {
     db.run(
-      `UPDATE notices SET title = ?, content = ?, type = ? WHERE id = ?`,
-      [title, content, type, id],
+      `UPDATE notices SET title = ?, content = ?, type = ?, image = ? WHERE id = ?`,
+      [title, content, type, image || '', id],
       function(err) {
         if (err) {
           ctx.status = 500;

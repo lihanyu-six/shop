@@ -31,7 +31,7 @@ export interface DishListResponse {
 }
 
 export function getDishList(params: DishListParams): Promise<DishListResponse> {
-  return request.get('/dishes', { params })
+  return request.get('/admin/dishes', { params })
 }
 
 export function createDish(data: {
@@ -44,7 +44,7 @@ export function createDish(data: {
   mealType?: string
   status?: number
 }): Promise<{ id: number }> {
-  return request.post('/dishes', data)
+  return request.post('/admin/dishes', data)
 }
 
 export function updateDish(id: number, data: Partial<{
@@ -57,9 +57,9 @@ export function updateDish(id: number, data: Partial<{
   mealType: string
   status: number
 }>): Promise<void> {
-  return request.put(`/dishes/${id}`, data)
+  return request.put(`/admin/dishes/${id}`, data)
 }
 
 export function deleteDish(id: number): Promise<void> {
-  return request.delete(`/dishes/${id}`)
+  return request.delete(`/admin/dishes/${id}`)
 }

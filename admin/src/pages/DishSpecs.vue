@@ -109,9 +109,9 @@ const handleEdit = (row: DishSpecItem) => {
   isEdit.value = true
   editId.value = row.id
   dialogTitle.value = '编辑规格'
-  formData.dishId = row.dishId
-  formData.specName = row.specName
-  formData.specContent = row.specContent
+  formData.dishId = row.dish_id
+  formData.specName = row.spec_name
+  formData.specContent = row.spec_content
   dialogVisible.value = true
 }
 
@@ -184,9 +184,9 @@ onMounted(() => {
     <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
       <el-table-column type="index" label="序号" width="60" align="center" />
       <el-table-column prop="dishName" label="菜品名称" min-width="110" align="center" />
-      <el-table-column prop="specName" label="规格名称" width="100" align="center" />
-      <el-table-column prop="specContent" label="规格内容" min-width="150" align="center" show-overflow-tooltip />
-      <el-table-column prop="createdAt" label="添加时间" width="170" align="center" />
+      <el-table-column prop="spec_name" label="规格名称" width="100" align="center" />
+      <el-table-column prop="spec_content" label="规格内容" min-width="150" align="center" show-overflow-tooltip />
+      <el-table-column prop="created_at" label="添加时间" width="170" align="center" />
       <el-table-column label="添加人" width="80" align="center">
         <template #default>admin</template>
       </el-table-column>

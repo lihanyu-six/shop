@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import {
   getDishCategories,
@@ -62,7 +62,7 @@ const handleEdit = (row: DishCategory) => {
   editId.value = row.id
   dialogTitle.value = '编辑类别'
   formData.name = row.name
-  formData.showInDailyMenu = !!row.showInDailyMenu
+  formData.showInDailyMenu = !!row.show_in_daily_menu
   dialogVisible.value = true
 }
 
@@ -147,11 +147,11 @@ onMounted(() => {
       <el-table-column prop="createdBy" label="添加人" width="100" align="center">
         <template #default>admin</template>
       </el-table-column>
-      <el-table-column prop="createdAt" label="添加时间" width="180" align="center" />
+      <el-table-column prop="created_at" label="添加时间" width="180" align="center" />
       <el-table-column label="是否展示在每日菜单" width="180" align="center">
         <template #default="{ row }">
           <el-switch
-            :model-value="!!row.showInDailyMenu"
+            :model-value="!!row.show_in_daily_menu"
             active-color="#67C23A"
             @change="(val: boolean) => handleShowChange(row, val)"
           />

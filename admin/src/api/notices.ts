@@ -5,6 +5,7 @@ export interface Notice {
   title: string
   content: string
   type: string
+  image?: string
   status: number
   created_at: string
 }
@@ -19,6 +20,7 @@ export interface NoticeFormData {
   title: string
   content: string
   type: string
+  image?: string
 }
 
 export function getNoticeList(params: NoticeListParams) {

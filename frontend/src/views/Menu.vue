@@ -154,24 +154,13 @@
           <p class="detail-price">¥{{ currentDish.price.toFixed(2) }}</p>
           <p class="detail-desc">{{ currentDish.description }}</p>
 
-          <div class="option-section" v-if="currentDish.tastes && currentDish.tastes.length > 0">
-            <h4>口味</h4>
+          <div class="option-section" v-for="spec in currentSpecs" :key="spec.id">
+            <h4>{{ spec.spec_name }}</h4>
             <div class="option-tags">
-              <span class="tag" v-for="taste in currentDish.tastes" :key="taste"
-                :class="{ active: selectedTaste === taste }"
-                @click="selectedTaste = taste">
-                {{ taste }}
-              </span>
-            </div>
-          </div>
-
-          <div class="option-section" v-if="currentDish.specs && currentDish.specs.length > 0">
-            <h4>规格</h4>
-            <div class="option-tags">
-              <span class="tag" v-for="spec in currentDish.specs" :key="spec"
-                :class="{ active: selectedSpec === spec }"
-                @click="selectedSpec = spec">
-                {{ spec }}
+              <span class="tag" v-for="(option, idx) in spec.spec_content.split(',')" :key="idx"
+                :class="{ active: selectedSpecValues[spec.spec_name] === option.trim() }"
+                @click="selectedSpecValues[spec.spec_name] = option.trim()">
+                {{ option.trim() }}
               </span>
             </div>
           </div>
@@ -200,24 +189,21 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { useCartStore } from '@/stores/cart'
-import { getCategories, getDailyMenu } from '@/api/dishes'
+import { getCategories, getDailyMenu, getDishSpecs } from '@/api/dishes'
 
 const router = useRouter()
 const cartStore = useCartStore()
 
 const refreshing = ref(false)
 const dishes = ref([])
-const categories = ref([
-  { id: 1, name: '主食' },
-  { id: 2, name: '辅食' }
-])
+const categories = ref([{ id: 0, name: '全部' }])
 const selectedCategory = ref(0)
 const selectedDateIndex = ref(getTodayIndex())
 const showCartPopup = ref(false)
 const showDishPopup = ref(false)
 const currentDish = ref(null)
-const selectedTaste = ref('')
-const selectedSpec = ref('')
+const currentSpecs = ref([])
+const selectedSpecValues = ref({})
 const detailQuantity = ref(1)
 
 // 获取今天在日期列表中的索引
@@ -353,8 +339,8 @@ const currentDishes = computed(() => {
   if (selectedCategory.value === 0) {
     return dishes.value
   }
-  const categoryName = categories.value[selectedCategory.value]?.name
-  return dishes.value.filter(dish => dish.category === categoryName)
+  const categoryId = categories.value[selectedCategory.value]?.id
+  return dishes.value.filter(dish => dish.categoryId === categoryId)
 })
 
 watch(selectedDate, () => {
@@ -365,6 +351,16 @@ watch(selectedMeal, () => {
   loadDishes()
 })
 
+async function loadCategories() {
+  try {
+    const res = await getCategories()
+    const cats = res.categories || []
+    categories.value = [{ id: 0, name: '全部' }, ...cats]
+  } catch (e) {
+    console.error('加载分类失败:', e)
+  }
+}
+
 async function loadDishes() {
   try {
     const res = await getDailyMenu({
@@ -373,23 +369,11 @@ async function loadDishes() {
     })
     dishes.value = (res.dishes || []).map(dish => ({
       ...dish,
-      category: dish.category || categorizeDish(dish),
-      tastes: dish.tastes || ['多油', '清爽'],
-      specs: dish.specs || ['少盐', '清爽', '清淡']
+      categoryId: dish.category_id
     }))
   } catch (e) {
     console.error(e)
   }
-}
-
-function categorizeDish(dish) {
-  const name = (dish.name || '').toLowerCase()
-  const desc = (dish.description || '').toLowerCase()
-
-  if (name.includes('面') || name.includes('粉') || name.includes('饭') || name.includes('便当') || name.includes('套餐')) return '主食'
-  if (name.includes('汤') || name.includes('汁') || name.includes('粥') || name.includes('菜')) return '辅食'
-
-  return '主食'
 }
 
 function selectDate(index) {
@@ -432,26 +416,37 @@ function decreaseQuantity(dish) {
   }
 }
 
-function showDishDetail(dish) {
+async function showDishDetail(dish) {
   currentDish.value = dish
-  selectedTaste.value = dish.tastes?.[0] || ''
-  selectedSpec.value = dish.specs?.[0] || ''
+  currentSpecs.value = []
+  selectedSpecValues.value = {}
   detailQuantity.value = getQuantity(dish.id) || 1
   showDishPopup.value = true
+
+  // 异步加载规格
+  try {
+    const res = await getDishSpecs(dish.id)
+    currentSpecs.value = res.specs || []
+  } catch (e) {
+    console.error('加载规格失败:', e)
+  }
 }
 
 function addToCartFromDetail() {
   if (!currentDish.value) return
+
+  const specRemark = Object.entries(selectedSpecValues.value)
+    .filter(([_, v]) => v)
+    .map(([k, v]) => `${k}:${v}`)
+    .join('; ')
 
   const existingQty = getQuantity(currentDish.value.id)
   const addQty = detailQuantity.value - existingQty
 
   if (addQty > 0) {
     cartStore.addItem({
-      ...currentDish.value,
-      taste: selectedTaste.value,
-      spec: selectedSpec.value
-    }, addQty)
+      ...currentDish.value
+    }, addQty, specRemark)
   }
 
   showToast('已加入购物车')
@@ -497,6 +492,7 @@ function onClickLeft() {
 }
 
 onMounted(() => {
+  loadCategories()
   loadDishes()
 })
 </script>

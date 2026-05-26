@@ -5,10 +5,10 @@
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
       <div class="notice-list" v-if="notices.length > 0">
         <div class="notice-card" v-for="item in notices" :key="item.id" @click="goToNotice(item.id)">
-          <div class="notice-image">
-            <img :src="item.image || 'https://via.placeholder.com/100x80'" alt="" />
+          <div class="notice-image" v-if="item.image">
+            <img :src="item.image" alt="" />
           </div>
-          <div class="notice-info">
+          <div class="notice-info" :class="{ 'full-width': !item.image }">
             <h4 class="notice-title">{{ item.title }}</h4>
             <p class="notice-date">{{ formatDate(item.created_at) }}</p>
           </div>
@@ -101,6 +101,13 @@ onMounted(() => {
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
+  
+  &.full-width {
+    .notice-title {
+      display: block;
+      -webkit-line-clamp: unset;
+    }
+  }
 }
 
 .notice-title {

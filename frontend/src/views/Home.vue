@@ -92,12 +92,12 @@
         </div>
         <div class="notice-list">
           <div class="notice-item" v-for="(notice, index) in notices.slice(0, 3)" :key="notice?.id || index" @click="viewNotice(notice)">
-            <div class="notice-img">
-              <img :src="notice?.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=200&h=140&fit=crop'" alt="公告" />
+            <div class="notice-img" v-if="notice?.image">
+              <img :src="notice.image" alt="公告" />
             </div>
-            <div class="notice-text">
+            <div class="notice-text" :class="{ 'full-width': !notice?.image }">
               <h4>{{ notice?.title || '食堂上新公告公示' }}</h4>
-              <span class="notice-date">{{ notice?.created_at || '2026年1月21日' }}</span>
+              <span class="notice-date">{{ formatDate(notice?.created_at) }}</span>
             </div>
           </div>
         </div>
@@ -134,6 +134,12 @@ function viewNotice(notice) {
   if (notice?.id) {
     router.push(`/notices/${notice.id}`)
   }
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
 }
 
 function onTabChange(index) {
@@ -431,6 +437,13 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  
+  &.full-width {
+    h4 {
+      display: block;
+      -webkit-line-clamp: unset;
+    }
+  }
   
   h4 {
     font-size: 14px;

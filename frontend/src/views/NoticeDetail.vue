@@ -8,8 +8,8 @@
         <p class="notice-time">{{ formatDate(notice.created_at) }}</p>
       </div>
       
-      <div class="notice-image-wrapper">
-        <img :src="notice.image || 'https://via.placeholder.com/375x200'" alt="" />
+      <div class="notice-image-wrapper" v-if="notice.image">
+        <img :src="notice.image" alt="" />
       </div>
       
       <div class="notice-body">

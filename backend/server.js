@@ -40,7 +40,7 @@ router.use('/api/users', usersRouter.routes());
 router.use('/api/reservations', reservationsRouter.routes());
 router.use('/api/consumption', adminConsumptionRouter.routes());
 router.use('/api/admin/notices', adminNoticesRouter.routes());
-router.use('/api/dishes', adminDishesRouter.routes());
+router.use('/api/admin/dishes', adminDishesRouter.routes());
 router.use('/api/dish-specs', dishSpecsRouter.routes());
 
 router.get('/', async (ctx) => {

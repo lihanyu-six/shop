@@ -15,3 +15,7 @@ export function getDailyMenu(params) {
 export function getDishDetail(id) {
   return request.get(`/dishes/${id}`)
 }
+
+export function getDishSpecs(dishId) {
+  return request.get(`/dishes/specs/${dishId}`)
+}

@@ -7,9 +7,9 @@ import {
   createDish,
   updateDish,
   deleteDish,
-  getDishCategories,
   type DishItem
 } from '../api/dishes'
+import { getDishCategories } from '../api/dishCategories'
 
 const router = useRouter()
 
@@ -117,11 +117,11 @@ const handleEdit = (row: DishItem) => {
   dialogTitle.value = '编辑菜品'
   formData.name = row.name
   formData.description = row.description || ''
-  formData.detailDescription = row.detailDescription || ''
+  formData.detailDescription = row.detail_description || ''
   formData.price = row.price
   formData.image = row.image || ''
-  formData.categoryId = row.categoryId
-  formData.mealType = row.mealType || ''
+  formData.categoryId = row.category_id
+  formData.mealType = row.meal_type || ''
   dialogVisible.value = true
 }
 
@@ -201,23 +201,31 @@ onMounted(() => {
     <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
       <el-table-column type="index" label="序号" width="60" align="center" />
       <el-table-column prop="name" label="菜品名称" min-width="110" align="center" />
-      <el-table-column label="图片" width="80" align="center">
+      <el-table-column label="图片" width="90" align="center">
         <template #default="{ row }">
           <el-image
             v-if="row.image"
             :src="row.image"
             :preview-src-list="[row.image]"
+            :preview-teleported="true"
             fit="cover"
             style="width: 40px; height: 40px; border-radius: 4px;"
-          />
+          >
+            <template #error>
+              <div class="image-error">无图</div>
+            </template>
+            <template #placeholder>
+              <div class="image-loading">...</div>
+            </template>
+          </el-image>
           <span v-else>-</span>
         </template>
       </el-table-column>
       <el-table-column prop="description" label="简介" min-width="120" align="center" show-overflow-tooltip />
-      <el-table-column prop="detailDescription" label="详细介绍" min-width="130" align="center" show-overflow-tooltip />
-      <el-table-column prop="mealType" label="类型" width="80" align="center" />
+      <el-table-column prop="detail_description" label="详细介绍" min-width="130" align="center" show-overflow-tooltip />
+      <el-table-column prop="meal_type" label="类型" width="80" align="center" />
       <el-table-column prop="categoryName" label="类别" width="80" align="center" />
-      <el-table-column prop="createdAt" label="添加时间" width="170" align="center" />
+      <el-table-column prop="created_at" label="添加时间" width="170" align="center" />
       <el-table-column label="添加人" width="80" align="center">
         <template #default>admin</template>
       </el-table-column>
@@ -315,5 +323,22 @@ onMounted(() => {
   padding: 16px 20px;
   background-color: #fff;
   border-radius: 4px;
+}
+
+.image-error,
+.image-loading {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  color: #909399;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+:deep(.el-image-viewer__wrapper) {
+  z-index: 3000 !important;
 }
 </style>

@@ -12,92 +12,102 @@
       </template>
     </van-nav-bar>
 
-    <div class="notification-list">
-      <div
-        v-for="(item, index) in notifications"
-        :key="index"
-        class="notification-item"
-        @click="viewDetail(item)"
-      >
-        <div class="icon-wrapper">
-          <van-icon name="info-o" size="22" color="#1989fa" />
+    <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+      <div class="notification-list">
+        <!-- New notices from backend, pinned at top -->
+        <div
+          v-for="item in notifications"
+          :key="item.id"
+          class="notification-item"
+          :class="{ 'new-notice': item.is_new }"
+          @click="viewDetail(item)"
+        >
+          <div class="icon-wrapper" :class="{ 'new-icon': item.is_new }">
+            <van-icon :name="item.is_new ? 'volume-o' : 'info-o'" :size="22" :color="item.is_new ? '#ee0a24' : '#1989fa'" />
+          </div>
+          <div class="content-wrapper">
+            <h4>
+              <van-tag v-if="item.is_new" type="danger" size="small" style="margin-right: 6px">NEW</van-tag>
+              {{ item.title }}
+            </h4>
+            <p class="message">{{ item.content }}</p>
+            <p class="time">{{ item.time }}</p>
+          </div>
         </div>
-        <div class="content-wrapper">
-          <h4>{{ item.title }}</h4>
-          <p class="message">{{ item.message }}</p>
-          <p class="time">{{ item.time }}</p>
-        </div>
-      </div>
 
-      <van-empty
-        v-if="notifications.length === 0"
-        description="暂无消息"
-      />
-    </div>
+        <van-empty
+          v-if="notifications.length === 0"
+          description="暂无消息"
+        />
+      </div>
+    </van-pull-refresh>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { showToast } from 'vant'
+import { getNotices } from '@/api/notices'
 
 const router = useRouter()
 
-const notifications = ref([
-  {
-    id: 1,
-    title: '系统公告消息',
-    message: '您于2026年1月22日预约的早餐由于库存不足原因导致无法正常发放，请重新预约！',
-    time: '1月22日 08:40'
-  },
-  {
-    id: 2,
-    title: '系统公告消息',
-    message: '测试问卷xx，点击即可跳转',
-    time: '1月22日 08:40'
-  },
-  {
-    id: 3,
-    title: '系统公告消息',
-    message: '食堂将于本周末进行系统升级维护，届时订餐功能将暂停使用，请提前安排用餐计划。',
-    time: '1月20日 10:15'
-  },
-  {
-    id: 4,
-    title: '系统公告消息',
-    message: '新增多款特色菜品，欢迎品尝！包括：红烧肉、宫保鸡丁、麻婆豆腐等。',
-    time: '1月18日 09:30'
-  },
-  {
-    id: 5,
-    title: '系统公告消息',
-    message: '为提升服务质量，我们推出了满意度调查问卷，您的意见对我们非常重要！',
-    time: '1月15日 14:20'
-  },
-  {
-    id: 6,
-    title: '系统公告消息',
-    message: '春节期间营业时间调整：除夕至初二休息，初三恢复正常营业。祝您新春快乐！',
-    time: '1月12日 11:00'
-  },
-  {
-    id: 7,
-    title: '系统公告消息',
-    message: '本周五将举办美食节活动，现场有优惠折扣和精美礼品，欢迎参与！',
-    time: '1月10日 16:45'
-  },
-  {
-    id: 8,
-    title: '系统公告消息',
-    message: '感谢您对食堂工作的支持与理解！如有任何建议或投诉，请通过反馈渠道联系我们。',
-    time: '1月8日 08:55'
+const refreshing = ref(false)
+const notifications = ref([])
+
+async function loadNotifications() {
+  try {
+    const res = await getNotices()
+    const noticeList = res.notices || []
+    
+    // Sort by created_at descending, newest first (pinned at top)
+    const sorted = [...noticeList].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    
+    notifications.value = sorted.map((item, index) => {
+      const date = new Date(item.created_at)
+      const now = new Date()
+      const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24))
+      
+      return {
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        time: formatTime(date),
+        is_new: diffDays <= 3 // Messages within 3 days are marked as new
+      }
+    })
+  } catch (e) {
+    console.error('加载消息通知失败:', e)
   }
-])
+}
+
+async function onRefresh() {
+  await loadNotifications()
+  refreshing.value = false
+}
+
+function formatTime(date) {
+  const now = new Date()
+  const diffMs = now - date
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  
+  if (diffDays === 0) {
+    return `今天 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  } else if (diffDays === 1) {
+    return `昨天 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  } else if (diffDays < 7) {
+    return `${diffDays}天前`
+  } else {
+    return `${date.getMonth() + 1}月${date.getDate()}日 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  }
+}
 
 function viewDetail(item) {
-  showToast('查看详情：' + item.title)
+  router.push(`/notices/${item.id}`)
 }
+
+onMounted(() => {
+  loadNotifications()
+})
 </script>
 
 <style scoped lang="less">
@@ -129,6 +139,12 @@ function viewDetail(item) {
   &:last-child {
     margin-bottom: 0;
   }
+
+  &.new-notice {
+    background: #fff8f0;
+    border: 1px solid #ffe4cc;
+    box-shadow: 0 2px 8px rgba(238, 10, 36, 0.08);
+  }
 }
 
 .icon-wrapper {
@@ -140,6 +156,10 @@ function viewDetail(item) {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  
+  &.new-icon {
+    background: #fff0f0;
+  }
 }
 
 .content-wrapper {
@@ -151,6 +171,8 @@ function viewDetail(item) {
     font-weight: 600;
     color: #333;
     margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
   }
 
   .message {

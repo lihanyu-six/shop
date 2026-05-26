@@ -10,7 +10,7 @@ export interface DishCategory {
 }
 
 export function getDishCategories(params?: { keyword?: string }): Promise<DishCategory[]> {
-  return request.get('/dishes/categories', { params })
+  return request.get('/admin/dishes/categories', { params })
 }
 
 export function createDishCategory(data: {
@@ -18,7 +18,7 @@ export function createDishCategory(data: {
   sortOrder?: number
   showInDailyMenu?: boolean
 }): Promise<{ id: number }> {
-  return request.post('/dishes/categories', data)
+  return request.post('/admin/dishes/categories', data)
 }
 
 export function updateDishCategory(id: number, data: Partial<{
@@ -26,9 +26,9 @@ export function updateDishCategory(id: number, data: Partial<{
   sortOrder: number
   showInDailyMenu: boolean
 }>): Promise<void> {
-  return request.put(`/dishes/categories/${id}`, data)
+  return request.put(`/admin/dishes/categories/${id}`, data)
 }
 
 export function deleteDishCategory(id: number): Promise<void> {
-  return request.delete(`/dishes/categories/${id}`)
+  return request.delete(`/admin/dishes/categories/${id}`)
 }

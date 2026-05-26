@@ -134,6 +134,7 @@ function initDatabase() {
       title TEXT NOT NULL,
       content TEXT NOT NULL,
       type TEXT,
+      image TEXT,
       status INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
@@ -177,7 +178,85 @@ function initDatabase() {
 
     console.log('数据库初始化完成');
 
+    migrateNoticesTable();
+    migrateDishCategoriesTable();
+    migrateDishesTable();
     insertSampleData();
+  });
+}
+
+function migrateNoticesTable() {
+  db.get("PRAGMA table_info(notices)", (err, rows) => {
+    if (err) return;
+    const columns = rows ? (Array.isArray(rows) ? rows : [rows]) : [];
+    const hasImage = columns.some(col => col.name === 'image');
+    if (!hasImage) {
+      db.run("ALTER TABLE notices ADD COLUMN image TEXT DEFAULT ''", (err) => {
+        if (err) {
+          console.error('notices表添加image字段失败:', err);
+        } else {
+          console.log('notices表已添加image字段');
+        }
+      });
+    }
+  });
+}
+
+function migrateDishCategoriesTable() {
+  db.all("PRAGMA table_info(dish_categories)", (err, rows) => {
+    if (err) return;
+    const columns = rows || [];
+    const hasShowInDailyMenu = columns.some(col => col.name === 'show_in_daily_menu');
+    const hasCreatedBy = columns.some(col => col.name === 'created_by');
+    const hasCreatedAt = columns.some(col => col.name === 'created_at');
+
+    if (!hasShowInDailyMenu) {
+      db.run("ALTER TABLE dish_categories ADD COLUMN show_in_daily_menu INTEGER DEFAULT 1", (err) => {
+        if (err) console.error('dish_categories添加show_in_daily_menu字段失败:', err);
+        else console.log('dish_categories表已添加show_in_daily_menu字段');
+      });
+    }
+    if (!hasCreatedBy) {
+      db.run("ALTER TABLE dish_categories ADD COLUMN created_by TEXT DEFAULT 'admin'", (err) => {
+        if (err) console.error('dish_categories添加created_by字段失败:', err);
+        else console.log('dish_categories表已添加created_by字段');
+      });
+    }
+    if (!hasCreatedAt) {
+      db.run("ALTER TABLE dish_categories ADD COLUMN created_at DATETIME", (err) => {
+        if (err) console.error('dish_categories添加created_at字段失败:', err);
+        else console.log('dish_categories表已添加created_at字段');
+      });
+    }
+  });
+}
+
+function migrateDishesTable() {
+  db.all("PRAGMA table_info(dishes)", (err, rows) => {
+    if (err) return;
+    const columns = rows || [];
+    const hasDetailDesc = columns.some(col => col.name === 'detail_description');
+    const hasMealType = columns.some(col => col.name === 'meal_type');
+    const hasCreatedBy = columns.some(col => col.name === 'created_by');
+
+    if (!hasDetailDesc) {
+      db.run("ALTER TABLE dishes ADD COLUMN detail_description TEXT", (err) => {
+        if (err) console.error('dishes添加detail_description字段失败:', err);
+        else console.log('dishes表已添加detail_description字段');
+      });
+    }
+    if (!hasMealType) {
+      db.run("ALTER TABLE dishes ADD COLUMN meal_type TEXT", (err) => {
+        if (err) console.error('dishes添加meal_type字段失败:', err);
+        else console.log('dishes表已添加meal_type字段');
+      });
+    }
+    if (!hasCreatedBy) {
+      db.run("ALTER TABLE dishes ADD COLUMN created_by TEXT DEFAULT 'admin'", (err) => {
+        if (err) console.error('dishes添加created_by字段失败:', err);
+        else console.log('dishes表已添加created_by字段');
+      });
+    }
   });
 }
 

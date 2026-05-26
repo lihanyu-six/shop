@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
   getNoticeList,
@@ -27,10 +28,13 @@ const formRef = ref<FormInstance>()
 const formData = reactive<NoticeFormData>({
   title: '',
   content: '',
-  type: ''
+  type: '',
+  image: ''
 })
 const isEdit = ref(false)
 const editId = ref<number | null>(null)
+const uploading = ref(false)
+const previewImage = ref('')
 
 const formRules: FormRules = {
   title: [
@@ -83,6 +87,8 @@ const resetForm = () => {
   formData.title = ''
   formData.content = ''
   formData.type = ''
+  formData.image = ''
+  previewImage.value = ''
   isEdit.value = false
   editId.value = null
 }
@@ -101,7 +107,30 @@ const handleEdit = (row: Notice) => {
   formData.title = row.title
   formData.content = row.content
   formData.type = row.type || ''
+  formData.image = row.image || ''
+  previewImage.value = row.image || ''
   dialogVisible.value = true
+}
+
+const handleUpload = (file: File) => {
+  uploading.value = true
+  const reader = new FileReader()
+  reader.onload = () => {
+    formData.image = reader.result as string
+    previewImage.value = reader.result as string
+    uploading.value = false
+  }
+  reader.onerror = () => {
+    ElMessage.error('图片读取失败')
+    uploading.value = false
+  }
+  reader.readAsDataURL(file)
+  return false // prevent element-plus upload from auto-submitting
+}
+
+const handleRemoveImage = () => {
+  formData.image = ''
+  previewImage.value = ''
 }
 
 const handleSubmit = async () => {
@@ -113,14 +142,16 @@ const handleSubmit = async () => {
         await updateNotice(editId.value, {
           title: formData.title,
           content: formData.content,
-          type: formData.type
+          type: formData.type,
+          image: formData.image
         })
         ElMessage.success('编辑成功')
       } else {
         await createNotice({
           title: formData.title,
           content: formData.content,
-          type: formData.type
+          type: formData.type,
+          image: formData.image
         })
         ElMessage.success('发布成功')
       }
@@ -191,6 +222,18 @@ onMounted(() => {
         </template>
       </el-table-column>
       <el-table-column prop="content" label="内容" min-width="200" align="center" show-overflow-tooltip />
+      <el-table-column label="图片" width="100" align="center">
+        <template #default="{ row }">
+          <el-image
+            v-if="row.image"
+            :src="row.image"
+            :preview-src-list="[row.image]"
+            style="width: 60px; height: 40px; border-radius: 4px;"
+            fit="cover"
+          />
+          <span v-else style="color: #999; font-size: 12px;">无</span>
+        </template>
+      </el-table-column>
       <el-table-column label="发告人" width="100" align="center">
         <template #default>
           admin
@@ -263,11 +306,50 @@ onMounted(() => {
             placeholder="请输入内容"
           />
         </el-form-item>
+        <el-form-item label="图片">
+          <div class="upload-area">
+            <el-upload
+              class="image-uploader"
+              :show-file-list="false"
+              :before-upload="handleUpload"
+              accept="image/*"
+            >
+              <el-image
+                v-if="previewImage"
+                :src="previewImage"
+                class="upload-preview"
+                fit="cover"
+              >
+                <template #error>
+                  <div class="upload-placeholder">
+                    <el-icon><Plus /></el-icon>
+                    <span>上传图片</span>
+                  </div>
+                </template>
+              </el-image>
+              <div v-else class="upload-placeholder">
+                <el-icon><Plus /></el-icon>
+                <span>上传图片</span>
+              </div>
+            </el-upload>
+            <el-button
+              v-if="previewImage"
+              type="danger"
+              size="small"
+              text
+              @click="handleRemoveImage"
+              style="margin-left: 10px;"
+            >
+              移除
+            </el-button>
+          </div>
+          <p class="upload-tip">支持 JPG、PNG 格式，建议尺寸 375x200</p>
+        </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleSubmit">确定</el-button>
+          <el-button type="primary" @click="handleSubmit" :loading="uploading">确定</el-button>
         </span>
       </template>
     </el-dialog>
@@ -303,5 +385,57 @@ onMounted(() => {
   padding: 16px 20px;
   background-color: #fff;
   border-radius: 4px;
+}
+
+.upload-area {
+  display: flex;
+  align-items: center;
+}
+
+.image-uploader {
+  :deep(.el-upload) {
+    border: 1px dashed #d9d9d9;
+    border-radius: 6px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s;
+    
+    &:hover {
+      border-color: #409eff;
+    }
+  }
+}
+
+.upload-placeholder {
+  width: 150px;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+  color: #8c939d;
+  
+  .el-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+  
+  span {
+    font-size: 14px;
+  }
+}
+
+.upload-preview {
+  width: 150px;
+  height: 100px;
+  border-radius: 6px;
+  border: 1px solid #dcdfe6;
+}
+
+.upload-tip {
+  font-size: 12px;
+  color: #909399;
+  margin: 8px 0 0;
 }
 </style>

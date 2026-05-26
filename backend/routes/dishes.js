@@ -96,6 +96,23 @@ router.get('/daily', async (ctx) => {
   });
 });
 
+router.get('/specs/:dishId', async (ctx) => {
+  const { dishId } = ctx.params;
+  
+  return new Promise((resolve) => {
+    db.all("SELECT * FROM dish_specs WHERE dish_id = ? ORDER BY id", [dishId], (err, rows) => {
+      if (err) {
+        ctx.status = 500;
+        ctx.body = { error: '查询失败' };
+        resolve();
+        return;
+      }
+      ctx.body = { specs: rows };
+      resolve();
+    });
+  });
+});
+
 router.get('/:id', async (ctx) => {
   const { id } = ctx.params;
   
