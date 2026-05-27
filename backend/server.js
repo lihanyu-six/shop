@@ -18,6 +18,7 @@ const adminConsumptionRouter = require('./routes/admin-consumption');
 const adminNoticesRouter = require('./routes/admin-notices');
 const adminDishesRouter = require('./routes/admin-dishes');
 const dishSpecsRouter = require('./routes/dish-specs');
+const adminOrdersRouter = require('./routes/admin-orders');
 
 const app = new Koa();
 const router = new Router();
@@ -42,6 +43,7 @@ router.use('/api/consumption', adminConsumptionRouter.routes());
 router.use('/api/admin/notices', adminNoticesRouter.routes());
 router.use('/api/admin/dishes', adminDishesRouter.routes());
 router.use('/api/dish-specs', dishSpecsRouter.routes());
+router.use('/api/admin/orders', adminOrdersRouter.routes());
 
 router.get('/', async (ctx) => {
   ctx.body = { message: '食堂订餐系统API服务已启动' };
@@ -51,6 +53,6 @@ app.use(router.routes());
 app.use(router.allowedMethods());
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`服务器运行在 http://localhost:${PORT}`);
 });

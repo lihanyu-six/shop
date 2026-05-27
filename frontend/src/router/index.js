@@ -73,12 +73,6 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/feedback-list',
-    name: 'FeedbackList',
-    component: () => import('@/views/FeedbackList.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
     path: '/surveys',
     name: 'Surveys',
     component: () => import('@/views/Surveys.vue'),

@@ -1,6 +1,7 @@
 const Router = require('koa-router');
 const { db } = require('../database');
 const { authMiddleware } = require('../middleware/auth');
+const XLSX = require('xlsx');
 
 const router = new Router();
 
@@ -121,7 +122,11 @@ router.get('/orders', async (ctx) => {
               const list = orders.map(order => {
                 const orderItems = items
                   .filter(item => item.order_id === order.id)
-                  .map(({ order_id, ...item }) => item);
+                  .map(({ order_id, dish_name, quantity, remark }) => ({
+                    dishName: dish_name,
+                    quantity,
+                    remark
+                  }));
 
                 return {
                   id: order.id,
@@ -169,6 +174,8 @@ router.get('/orders/export', async (ctx) => {
     params.push(`%${department}%`);
   }
 
+  const mealTypeMap = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐' };
+
   return new Promise((resolve) => {
     db.all(`SELECT o.id, u.name as userName, u.department, u.employee_no as employeeNo,
             o.meal_type as mealType, o.pick_code as pickCode, o.remark,
@@ -184,7 +191,13 @@ router.get('/orders/export', async (ctx) => {
       }
 
       if (orders.length === 0) {
-        ctx.body = { code: 200, message: 'success', data: [] };
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet([]);
+        XLSX.utils.book_append_sheet(wb, ws, '订餐数据');
+        const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        ctx.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        ctx.set('Content-Disposition', 'attachment; filename=orders_export.xlsx');
+        ctx.body = Buffer.from(buf);
         resolve();
         return;
       }
@@ -204,7 +217,11 @@ router.get('/orders/export', async (ctx) => {
           const list = orders.map(order => {
             const orderItems = items
               .filter(item => item.order_id === order.id)
-              .map(({ order_id, ...item }) => item);
+              .map(({ order_id, dish_name, quantity, remark }) => ({
+                dishName: dish_name,
+                quantity,
+                remark
+              }));
 
             return {
               id: order.id,
@@ -219,7 +236,25 @@ router.get('/orders/export', async (ctx) => {
             };
           });
 
-          ctx.body = { code: 200, message: 'success', data: list };
+          const exportData = list.map(order => ({
+            '姓名': order.userName || '',
+            '部门': order.department || '',
+            '工号': order.employeeNo || '',
+            '餐次类型': mealTypeMap[order.mealType] || order.mealType,
+            '菜品': order.items.map(i => i.dishName + 'x' + i.quantity).join(', '),
+            '菜品备注': order.remark || '',
+            '取餐码': order.pickCode || '',
+            '预定时间': order.createdAt
+          }));
+
+          const wb = XLSX.utils.book_new();
+          const ws = XLSX.utils.json_to_sheet(exportData);
+          XLSX.utils.book_append_sheet(wb, ws, '订餐数据');
+          const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+          ctx.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+          ctx.set('Content-Disposition', 'attachment; filename=orders_export.xlsx');
+          ctx.body = Buffer.from(buf);
           resolve();
         });
     });

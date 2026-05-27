@@ -5,12 +5,7 @@
       left-arrow
       @click-left="$router.back()"
       :border="false"
-    >
-      <template #right>
-        <van-icon name="ellipsis" size="20" />
-        <van-icon name="eye-o" size="20" style="margin-left: 15px" />
-      </template>
-    </van-nav-bar>
+    />
 
     <div class="update-time">
       <van-icon name="clock-o" size="14" />
@@ -55,12 +50,11 @@
       </div>
     </div>
 
-    <van-popup v-model:show="showMonthPicker" position="bottom" round>
+    <van-popup v-model:show="showMonthPicker" position="bottom">
       <van-picker
-        :columns="months"
+        :columns="monthColumns"
         @confirm="onMonthConfirm"
         @cancel="showMonthPicker = false"
-        title="选择月份"
       />
     </van-popup>
   </div>
@@ -73,13 +67,23 @@ const updateTime = ref('2026-01-26 07:44:22')
 const currentMonth = ref('2026年01月')
 const showMonthPicker = ref(false)
 
-const months = [
-  '2026年01月',
-  '2025年12月',
-  '2025年11月',
-  '2025年10月',
-  '2025年09月'
-]
+const now = new Date()
+const monthColumns = computed(() => {
+  const columns = []
+  for (let y = now.getFullYear(); y >= 2020; y--) {
+    const maxMonth = y === now.getFullYear() ? now.getMonth() + 1 : 12
+    for (let m = maxMonth; m >= 1; m--) {
+      const text = `${y}年${String(m).padStart(2, '0')}月`
+      columns.push({ text, value: text })
+    }
+  }
+  return columns
+})
+
+function onMonthConfirm({ selectedOptions }) {
+  currentMonth.value = selectedOptions[0]?.text || currentMonth.value
+  showMonthPicker.value = false
+}
 
 const records = ref([
   {
@@ -232,10 +236,7 @@ const totalAmount = computed(() => {
   return records.value.reduce((sum, r) => sum + r.cost, 0)
 })
 
-function onMonthConfirm({ selectedOptions }) {
-  currentMonth.value = selectedOptions[0]?.text || currentMonth.value
-  showMonthPicker.value = false
-}
+
 </script>
 
 <style scoped lang="less">

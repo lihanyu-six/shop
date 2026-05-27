@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  getReservationList,
-  createReservation,
-  updateReservation,
-  deleteReservation,
-  type ReservationItem
-} from '../api/reservations'
+  getOrderList,
+  updateOrderStatus,
+  type OrderRecord
+} from '../api/orders'
 
 const keyword = ref('')
-const tableData = ref<ReservationItem[]>([])
+const filterStatus = ref('')
+const filterMealType = ref('')
+const filterOrderDate = ref('')
+const tableData = ref<OrderRecord[]>([])
 const loading = ref(false)
 
 const pagination = reactive({
@@ -19,40 +20,37 @@ const pagination = reactive({
   total: 0
 })
 
-const dialogVisible = ref(false)
-const dialogTitle = ref('新增预约')
-const formRef = ref<FormInstance>()
-const formData = reactive({
-  category: '',
-  timeSlot: '当日',
-  startTime: '',
-  endTime: ''
-})
-const isEdit = ref(false)
-const editId = ref<number | null>(null)
+const detailVisible = ref(false)
+const detailData = ref<OrderRecord | null>(null)
 
-const formRules: FormRules = {
-  category: [{ required: true, message: '请选择类别', trigger: 'change' }],
-  timeSlot: [{ required: true, message: '请选择预约时间难度', trigger: 'change' }],
-  startTime: [{ required: true, message: '请选择开始时间', trigger: 'change' }],
-  endTime: [{ required: true, message: '请选择结束时间', trigger: 'change' }]
+const mealTypeMap: Record<string, string> = {
+  breakfast: '早餐',
+  lunch: '午餐',
+  dinner: '晚餐'
 }
 
-const categoryOptions = ['早餐', '午餐', '晚餐']
-const timeSlotOptions = ['前一天', '当日']
+const statusMap: Record<string, { text: string; type: string }> = {
+  pending: { text: '待取餐', type: 'warning' },
+  confirmed: { text: '已取餐', type: 'success' },
+  picked: { text: '已取餐', type: 'success' },
+  cancelled: { text: '已取消', type: 'info' }
+}
 
-const fetchReservationList = async () => {
+const fetchOrderList = async () => {
   loading.value = true
   try {
-    const res = await getReservationList({
+    const res = await getOrderList({
       page: pagination.current,
       pageSize: pagination.pageSize,
-      keyword: keyword.value || undefined
+      keyword: keyword.value || undefined,
+      status: filterStatus.value || undefined,
+      mealType: filterMealType.value || undefined,
+      orderDate: filterOrderDate.value || undefined
     })
     tableData.value = res.list
     pagination.total = res.total
   } catch (error) {
-    console.error('获取预约列表失败:', error)
+    console.error('获取订单列表失败:', error)
   } finally {
     loading.value = false
   }
@@ -60,94 +58,52 @@ const fetchReservationList = async () => {
 
 const handleSearch = () => {
   pagination.current = 1
-  fetchReservationList()
+  fetchOrderList()
+}
+
+const handleReset = () => {
+  keyword.value = ''
+  filterStatus.value = ''
+  filterMealType.value = ''
+  filterOrderDate.value = ''
+  pagination.current = 1
+  fetchOrderList()
 }
 
 const handleSizeChange = (val: number) => {
   pagination.pageSize = val
-  fetchReservationList()
+  fetchOrderList()
 }
 
 const handleCurrentChange = (val: number) => {
   pagination.current = val
-  fetchReservationList()
+  fetchOrderList()
 }
 
-const resetForm = () => {
-  formData.category = ''
-  formData.timeSlot = '当日'
-  formData.startTime = ''
-  formData.endTime = ''
-  isEdit.value = false
-  editId.value = null
+const handleDetail = (row: OrderRecord) => {
+  detailData.value = row
+  detailVisible.value = true
 }
 
-const handleAdd = () => {
-  resetForm()
-  dialogTitle.value = '新增预约'
-  dialogVisible.value = true
-}
-
-const handleEdit = (row: ReservationItem) => {
-  resetForm()
-  isEdit.value = true
-  editId.value = row.id
-  dialogTitle.value = '编辑预约'
-  formData.category = row.category
-  formData.timeSlot = row.timeSlot
-  formData.startTime = row.startTime
-  formData.endTime = row.endTime
-  dialogVisible.value = true
-}
-
-const handleSubmit = async () => {
-  if (!formRef.value) return
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return
-    try {
-      if (isEdit.value && editId.value) {
-        await updateReservation(editId.value, {
-          category: formData.category,
-          timeSlot: formData.timeSlot,
-          startTime: formData.startTime,
-          endTime: formData.endTime
-        })
-        ElMessage.success('编辑成功')
-      } else {
-        await createReservation({
-          category: formData.category,
-          timeSlot: formData.timeSlot,
-          startTime: formData.startTime,
-          endTime: formData.endTime
-        })
-        ElMessage.success('新增成功')
-      }
-      dialogVisible.value = false
-      fetchReservationList()
-    } catch (error) {
-      console.error('操作失败:', error)
-    }
-  })
-}
-
-const handleDelete = (row: ReservationItem) => {
-  ElMessageBox.confirm('确定要删除该预约记录吗？', '提示', {
+const handleStatusChange = (row: OrderRecord, newStatus: string) => {
+  const statusText = statusMap[newStatus]?.text || newStatus
+  ElMessageBox.confirm(`确定将此订单状态改为"${statusText}"吗？`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
     try {
-      await deleteReservation(row.id)
-      ElMessage.success('删除成功')
-      fetchReservationList()
+      await updateOrderStatus(row.id, newStatus)
+      ElMessage.success('状态更新成功')
+      fetchOrderList()
     } catch (error) {
-      console.error('删除失败:', error)
+      console.error('更新状态失败:', error)
     }
   }).catch(() => {})
 }
 
 onMounted(() => {
-  fetchReservationList()
+  fetchOrderList()
 })
 </script>
 
@@ -158,23 +114,38 @@ onMounted(() => {
       <el-breadcrumb-item>预订订单</el-breadcrumb-item>
     </el-breadcrumb>
 
-    <div class="warning-bar">
-      <el-icon><InfoFilled /></el-icon>
-      <span>早餐、午餐类只只需配置一条记录！！！否则按最新一条记录取值</span>
-    </div>
-
     <div class="operation-bar">
-      <el-input
-        v-model="keyword"
-        placeholder="类型名称"
-        clearable
-        style="width: 200px"
-        @keyup.enter="handleSearch"
-        @clear="handleSearch"
-      />
+      <div class="filter-group">
+        <el-input
+          v-model="keyword"
+          placeholder="姓名/工号/订单号/取餐码"
+          clearable
+          style="width: 220px"
+          @keyup.enter="handleSearch"
+          @clear="handleSearch"
+        />
+        <el-select v-model="filterMealType" placeholder="餐类" clearable style="width: 100px" @change="handleSearch">
+          <el-option label="早餐" value="breakfast" />
+          <el-option label="午餐" value="lunch" />
+          <el-option label="晚餐" value="dinner" />
+        </el-select>
+        <el-select v-model="filterStatus" placeholder="状态" clearable style="width: 100px" @change="handleSearch">
+          <el-option label="待取餐" value="pending" />
+          <el-option label="已取餐" value="confirmed" />
+          <el-option label="已取消" value="cancelled" />
+        </el-select>
+        <el-date-picker
+          v-model="filterOrderDate"
+          type="date"
+          placeholder="预定日期"
+          value-format="YYYY-MM-DD"
+          style="width: 150px"
+          @change="handleSearch"
+        />
+      </div>
       <div class="button-group">
         <el-button type="primary" @click="handleSearch">搜索</el-button>
-        <el-button type="info" @click="handleSearch">导出</el-button>
+        <el-button @click="handleReset">重置</el-button>
       </div>
     </div>
 
@@ -186,19 +157,47 @@ onMounted(() => {
       style="width: 100%"
     >
       <el-table-column type="index" label="序号" width="60" align="center" />
-      <el-table-column prop="category" label="类别" width="90" align="center" />
-      <el-table-column prop="timeSlot" label="预约时间段量" width="120" align="center" />
-      <el-table-column label="预约时间" width="140" align="center">
+      <el-table-column prop="order_no" label="订单号" width="170" align="center" show-overflow-tooltip />
+      <el-table-column prop="user_name" label="预订人" width="80" align="center" />
+      <el-table-column prop="department" label="部门" width="90" align="center" show-overflow-tooltip />
+      <el-table-column prop="employee_no" label="工号" width="80" align="center" />
+      <el-table-column label="餐类" width="70" align="center">
         <template #default="{ row }">
-          {{ row.startTime }} - {{ row.endTime }}
+          {{ mealTypeMap[row.meal_type] || row.meal_type }}
         </template>
       </el-table-column>
-      <el-table-column prop="createdBy" label="添加人" width="90" align="center" />
-      <el-table-column prop="createdAt" label="添加时间" width="170" align="center" />
-      <el-table-column label="操作栏" width="140" align="center" fixed="right">
+      <el-table-column prop="order_date" label="预定日期" width="110" align="center" />
+      <el-table-column prop="pick_code" label="取餐码" width="80" align="center" />
+      <el-table-column label="菜品" min-width="150" show-overflow-tooltip>
         <template #default="{ row }">
-          <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
-          <el-button type="danger" link @click="handleDelete(row)">删除</el-button>
+          {{ row.items?.map((i: any) => `${i.dish_name}x${i.quantity}`).join('、') || '-' }}
+        </template>
+      </el-table-column>
+      <el-table-column label="金额" width="70" align="center">
+        <template #default="{ row }">
+          ¥{{ row.total_amount?.toFixed(2) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" width="90" align="center">
+        <template #default="{ row }">
+          <el-tag :type="(statusMap[row.status]?.type || 'info') as any" size="small">
+            {{ statusMap[row.status]?.text || row.status }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="createdAt" label="下单时间" width="170" align="center" />
+      <el-table-column label="操作" width="140" align="center" fixed="right">
+        <template #default="{ row }">
+          <el-button type="primary" link @click="handleDetail(row)">详情</el-button>
+          <el-dropdown v-if="row.status === 'pending'" trigger="click" @command="(cmd: string) => handleStatusChange(row, cmd)">
+            <el-button type="success" link>取餐</el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="confirmed">确认取餐</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <el-button v-if="row.status === 'pending'" type="danger" link @click="handleStatusChange(row, 'cancelled')">取消</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -216,62 +215,42 @@ onMounted(() => {
     </div>
 
     <el-dialog
-      v-model="dialogVisible"
-      :title="dialogTitle"
-      width="500px"
-      :close-on-click-modal="false"
-      @close="resetForm"
+      v-model="detailVisible"
+      title="订单详情"
+      width="550px"
     >
-      <el-form
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        label-width="120px"
-      >
-        <el-form-item label="类别" prop="category">
-          <el-select v-model="formData.category" placeholder="请选择类别" style="width: 100%">
-            <el-option
-              v-for="item in categoryOptions"
-              :key="item"
-              :label="item"
-              :value="item"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="预约时间段量" prop="timeSlot">
-          <el-select v-model="formData.timeSlot" placeholder="请选择" style="width: 100%">
-            <el-option
-              v-for="item in timeSlotOptions"
-              :key="item"
-              :label="item"
-              :value="item"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="开始时间" prop="startTime">
-          <el-time-picker
-            v-model="formData.startTime"
-            format="HH:mm"
-            value-format="HH:mm"
-            placeholder="选择开始时间"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="结束时间" prop="endTime">
-          <el-time-picker
-            v-model="formData.endTime"
-            format="HH:mm"
-            value-format="HH:mm"
-            placeholder="选择结束时间"
-            style="width: 100%"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleSubmit">确定</el-button>
-        </span>
+      <template v-if="detailData">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="订单号">{{ detailData.order_no }}</el-descriptions-item>
+          <el-descriptions-item label="取餐码">{{ detailData.pick_code }}</el-descriptions-item>
+          <el-descriptions-item label="预订人">{{ detailData.user_name }}</el-descriptions-item>
+          <el-descriptions-item label="部门">{{ detailData.department }}</el-descriptions-item>
+          <el-descriptions-item label="工号">{{ detailData.employee_no }}</el-descriptions-item>
+          <el-descriptions-item label="餐类">{{ mealTypeMap[detailData.meal_type] || detailData.meal_type }}</el-descriptions-item>
+          <el-descriptions-item label="预定日期">{{ detailData.order_date }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="(statusMap[detailData.status]?.type || 'info') as any" size="small">
+              {{ statusMap[detailData.status]?.text || detailData.status }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="备注" :span="2">{{ detailData.remark || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="下单时间" :span="2">{{ detailData.createdAt }}</el-descriptions-item>
+        </el-descriptions>
+
+        <h4 style="margin: 16px 0 8px">菜品明细</h4>
+        <el-table :data="detailData.items" border size="small">
+          <el-table-column prop="dish_name" label="菜品" />
+          <el-table-column prop="price" label="单价" width="80" align="center">
+            <template #default="{ row }">¥{{ row.price?.toFixed(2) }}</template>
+          </el-table-column>
+          <el-table-column prop="quantity" label="数量" width="60" align="center" />
+          <el-table-column label="小计" width="80" align="center">
+            <template #default="{ row }">¥{{ (row.price * row.quantity)?.toFixed(2) }}</template>
+          </el-table-column>
+        </el-table>
+        <div style="text-align: right; margin-top: 8px; font-weight: bold">
+          合计：¥{{ detailData.total_amount?.toFixed(2) }}
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -284,19 +263,6 @@ onMounted(() => {
   min-height: calc(100vh - 84px);
 }
 
-.warning-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  background-color: #fef0f0;
-  border: 1px solid #fde2e2;
-  border-radius: 4px;
-  color: #f56c6c;
-  font-size: 14px;
-}
-
 .operation-bar {
   display: flex;
   justify-content: space-between;
@@ -305,6 +271,12 @@ onMounted(() => {
   background-color: #fff;
   padding: 16px 20px;
   border-radius: 4px;
+}
+
+.filter-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .button-group {

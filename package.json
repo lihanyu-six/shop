@@ -4,9 +4,13 @@
   "description": "食堂订餐系统",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:admin\"",
+    "dev:ngrok": "concurrently \"npm run dev\" \"npm run tunnel\"",
+    "dev:ngrok:all": "concurrently \"npm run dev\" \"npm run tunnel\" \"npm run tunnel:admin\"",
     "dev:backend": "cd backend && npm start",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:admin": "cd admin && npm run dev",
+    "tunnel": "\"%LOCALAPPDATA%\\ngrok\\ngrok.exe\" start --config ngrok.yml --all",
+    "tunnel:admin": "\"%LOCALAPPDATA%\\ngrok\\ngrok.exe\" start --config ngrok-admin.yml --all",
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../admin && npm install"
   },
   "devDependencies": {

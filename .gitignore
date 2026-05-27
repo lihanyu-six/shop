@@ -4,6 +4,8 @@ dist/
 *.log
 .env
 .env.local
+ngrok.yml
+ngrok-admin.yml
 .DS_Store
 .vscode/
 *.suo

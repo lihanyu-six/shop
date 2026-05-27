@@ -7,11 +7,6 @@
         @click-left="$router.back()"
         :border="false"
         class="nav-bar"
-      >
-        <template #right>
-          <van-icon name="ellipsis" size="20" color="#fff" />
-          <van-icon name="eye-o" size="20" color="#fff" style="margin-left: 15px" />
-        </template>
       </van-nav-bar>
 
       <div class="user-info-section">
@@ -54,6 +49,18 @@
       </div>
     </div>
 
+    <div class="logout-box">
+      <van-button
+        round
+        block
+        type="danger"
+        plain
+        @click="handleLogout"
+      >
+        退出登录
+      </van-button>
+    </div>
+
     <van-tabbar v-model="activeTabBar" @change="onTabChange" class="custom-tabbar">
       <van-tabbar-item icon="home-o" @click="$router.push('/home')">首页</van-tabbar-item>
       <van-tabbar-item icon="user-circle-o">我的</van-tabbar-item>
@@ -75,6 +82,11 @@ function onTabChange(index) {
   if (index === 0) {
     router.push('/home')
   }
+}
+
+function handleLogout() {
+  userStore.logout()
+  router.push('/login')
 }
 </script>
 
@@ -249,6 +261,10 @@ function onTabChange(index) {
     font-weight: 400;
     letter-spacing: 0.3px;
   }
+}
+
+.logout-box {
+  margin: 30px 18px;
 }
 
 .custom-tabbar {

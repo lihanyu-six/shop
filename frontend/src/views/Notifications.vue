@@ -5,12 +5,7 @@
       left-arrow
       @click-left="$router.back()"
       :border="false"
-    >
-      <template #right>
-        <van-icon name="ellipsis" size="20" />
-        <van-icon name="eye-o" size="20" style="margin-left: 15px" />
-      </template>
-    </van-nav-bar>
+    />
 
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
       <div class="notification-list">
@@ -102,7 +97,7 @@ function formatTime(date) {
 }
 
 function viewDetail(item) {
-  router.push(`/notices/${item.id}`)
+  router.push(`/notice/${item.id}`)
 }
 
 onMounted(() => {
